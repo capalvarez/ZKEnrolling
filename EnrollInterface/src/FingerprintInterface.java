@@ -24,8 +24,8 @@ public class FingerprintInterface extends JDialog {
     FingerprintDeviceController fingerprintController;
     MySQLController dbController;
 
-    public FingerprintInterface(DatabaseConfig databaseConfig) throws ClassNotFoundException{
-        dbController = new MySQLController(databaseConfig);
+    public FingerprintInterface(ConfigManager configManager) throws ClassNotFoundException{
+        dbController = new MySQLController(configManager.getDBConfig());
 
         setContentPane(contentPane);
         setModal(true);
@@ -34,7 +34,7 @@ public class FingerprintInterface extends JDialog {
         imageButton.setDefaultCapable(false);
 
         rutController = new RutController(this.rutField);
-        fingerprintController = new FingerprintDeviceController(imageButton, informationArea, "C:\\Users\\catalin\\IdeaProjects\\FingerprintSDK\\fingerprints");
+        fingerprintController = new FingerprintDeviceController(imageButton, informationArea, configManager.getLocalStoragePath());
 
         try {
             fingerprintController.openDevice();
@@ -119,7 +119,7 @@ public class FingerprintInterface extends JDialog {
         try {
             ConfigManager configManager = new ConfigManager("C:\\Users\\catalin\\IdeaProjects\\ZKEnrolling\\EnrollInterface\\resources\\config.properties");
 
-            FingerprintInterface dialog = new FingerprintInterface(configManager.getDBConfig());
+            FingerprintInterface dialog = new FingerprintInterface(configManager);
             dialog.pack();
             dialog.setVisible(true);
             System.exit(0);

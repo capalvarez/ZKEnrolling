@@ -29,4 +29,11 @@ public class ConfigManager {
 
         return new DatabaseConfig(server, port, database, user, password);
     }
+
+    public String getLocalStoragePath(){
+        String localStorage = this.config.getProperty("FINGERPRINT_LOCAL_STORAGE");
+
+        return localStorage;
+    }
 }
+
