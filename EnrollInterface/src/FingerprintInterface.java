@@ -162,6 +162,10 @@ public class FingerprintInterface extends JDialog {
         rutField.setText("");
     }
 
+    private void cleanAfterFailure(){
+
+    }
+
     private void captureFingerprints() {
         informationArea.setText("");
 
@@ -201,7 +205,9 @@ public class FingerprintInterface extends JDialog {
                     JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         } catch (Exception e){
-
+            JOptionPane.showMessageDialog(null, "No puede tener el programa corriendo más de una vez!", "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
         }
 
         try {

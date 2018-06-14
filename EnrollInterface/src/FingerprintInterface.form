@@ -212,11 +212,4 @@
       </grid>
     </children>
   </grid>
-  <buttonGroups>
-    <group name="fingerButtons">
-      <member id="4148"/>
-      <member id="4148"/>
-      <member id="925eb"/>
-    </group>
-  </buttonGroups>
 </form>
