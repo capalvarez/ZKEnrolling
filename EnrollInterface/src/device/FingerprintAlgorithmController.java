@@ -10,7 +10,7 @@ import java.util.ArrayList;
 public class FingerprintAlgorithmController {
     private long deviceDBHandler = 0;
     private ArrayList<String> imagesToProcess;
-    private FormattedFingerprints fingerprints;
+    private ArrayList<FormattedFingerprints> fingerprints;
 
     public FingerprintAlgorithmController() throws FingerprintAlgorithmException{
         deviceDBHandler = FingerprintSensorEx.DBInit();
@@ -20,13 +20,14 @@ public class FingerprintAlgorithmController {
         }
 
         imagesToProcess = new ArrayList<String>();
+        fingerprints = new ArrayList<>();
     }
 
     public void setImageToProcess(String path){
         imagesToProcess.add(path);
     }
 
-    public void processFingerprints() throws FingerprintAlgorithmException, CouldNotProcessFingerprintException{
+    public void processFingerprints(int index) throws FingerprintAlgorithmException, CouldNotProcessFingerprintException{
         FormattedFingerprints fingerprints = new FormattedFingerprints(3);
 
         int fingerprintFormat = 1; // ISO
@@ -37,7 +38,7 @@ public class FingerprintAlgorithmController {
 
         for (int j = 0; j < 3; j++) {
             sizes[j][0] = 2048;
-            String s = imagesToProcess.get(j);
+            String s = imagesToProcess.get(3*index + j);
             int returnCode = FingerprintSensorEx.ExtractFromImage(deviceDBHandler, s, 500, templates[j], sizes[j]);
 
             if (returnCode != 0) {
@@ -59,14 +60,15 @@ public class FingerprintAlgorithmController {
         String base64Template = FingerprintSensor.BlobToBase64(finalTemplate, finalLength[0]);
         fingerprints.addTemplate(base64Template, finalLength[0]);
 
-        this.fingerprints = fingerprints;
+        this.fingerprints.add(fingerprints);
     }
 
-    public FormattedFingerprints getFingerprints(){
+    public ArrayList<FormattedFingerprints> getFingerprints(){
         return this.fingerprints;
     }
 
     public void cleanUp(){
         imagesToProcess.clear();
+        fingerprints.clear();
     }
 }

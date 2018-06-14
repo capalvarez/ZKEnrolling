@@ -12,6 +12,7 @@ import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 public class FingerprintDeviceController {
     private long deviceId = 0;
@@ -26,15 +27,26 @@ public class FingerprintDeviceController {
     private int fingerprintWidth = 0;
     private int fingerprintHeight = 0;
 
-    private String rut;
-    private FingerprintImageSaver fingerprintImageSaver;
-    private byte[][] imagesBuffer;
+    private ArrayList<String> fingerMessages;
 
-    public FingerprintDeviceController(JButton imageButton, JTextArea area, String storagePath){
+    private String rut;
+    private ArrayList<Integer> toEnroll;
+    private int currentIndex;
+    private FingerprintImageSaver fingerprintImageSaver;
+    private ArrayList<byte[][]> imagesBuffer;
+
+    public FingerprintDeviceController(JButton imageButton, JTextArea area, String storagePath, ArrayList<String> messages){
         this.imageButton = imageButton;
         this.informationArea = area;
         this.fingerprintImageSaver = new FingerprintImageSaver(storagePath);
-        imagesBuffer = new byte[3][];
+        imagesBuffer = new ArrayList<>();
+        this.fingerMessages = messages;
+    }
+
+    public void setNumberOfFingers(int numberOfFingers){
+        for (int i = 0; i < numberOfFingers; i++){
+            imagesBuffer.add(new byte[3][]);
+        }
     }
 
     public void openDevice() throws OpenDeviceFailedException, NoDeviceConnectedException, FingerprintAlgorithmException{
@@ -93,31 +105,36 @@ public class FingerprintDeviceController {
         FingerprintSensorEx.Terminate();
     }
 
-    public void enroll(String rut) throws ClosedDeviceException{
+    public void enroll(String rut, ArrayList<Integer> toEnroll) throws ClosedDeviceException{
         if(deviceId == 0){
             throw new ClosedDeviceException();
         }
         this.rut = rut;
         enrolling = true;
+
+        this.toEnroll = toEnroll;
+        this.currentIndex = 0;
     }
 
-    public FormattedFingerprints getFingerprints() {
+    public ArrayList<FormattedFingerprints> getFingerprints() {
         return algorithmController.getFingerprints();
     }
 
     public void clear(){
         algorithmController.cleanUp();
+        imagesBuffer = new ArrayList<>();
     }
 
     public boolean saveFingerprints(MySQLController controller){
         try{
-            FormattedFingerprints fingerprints = algorithmController.getFingerprints();
+            ArrayList<FormattedFingerprints> fingerprints = algorithmController.getFingerprints();
 
-            controller.insertTemplate(rut, fingerprints.getTemplate(), fingerprints.getTemplateLength());
+            for (int i = 0; i < fingerprints.size(); i++){
+                FormattedFingerprints fingerprint = fingerprints.get(i);
 
-            for (int i = 0; i < imagesBuffer.length; i++) {
-                controller.insertImage(rut, imagesBuffer[i]);
+                controller.insertTemplate(rut, fingerprint.getTemplate(), fingerprint.getTemplateLength(), toEnroll.get(i));
             }
+
         }catch (SQLException e){
             return false;
         }
@@ -142,12 +159,12 @@ public class FingerprintDeviceController {
                     }
                 }
 
-                imagesBuffer[numberOfFingerprints] = new byte[fingerprintWidth * fingerprintHeight];
+                imagesBuffer.get(currentIndex)[numberOfFingerprints] = new byte[fingerprintWidth * fingerprintHeight];
                 byte[] template = new byte[2048];
                 int[] templateLen = new int[1];
                 templateLen[0] = 2048;
 
-                int statusCode = FingerprintSensorEx.AcquireFingerprint(deviceId, imagesBuffer[numberOfFingerprints], template,
+                int statusCode = FingerprintSensorEx.AcquireFingerprint(deviceId, imagesBuffer.get(currentIndex)[numberOfFingerprints], template,
                         templateLen);
 
                 if (statusCode == 0) {
@@ -165,7 +182,7 @@ public class FingerprintDeviceController {
                     }
 
                     String imageName = rut + "_" + numberOfFingerprints + ".bmp";
-                    String imagePath = fingerprintImageSaver.saveTemplateAsImage(imagesBuffer[numberOfFingerprints], fingerprintWidth, fingerprintHeight,
+                    String imagePath = fingerprintImageSaver.saveTemplateAsImage(imagesBuffer.get(currentIndex)[numberOfFingerprints], fingerprintWidth, fingerprintHeight,
                             imageName);
 
                     algorithmController.setImageToProcess(imagePath);
@@ -177,19 +194,25 @@ public class FingerprintDeviceController {
                     }
 
                     numberOfFingerprints++;
-                    informationArea.append("Captured fingerprint number " + numberOfFingerprints + "\n");
+                    informationArea.append("Huella capturada número " + numberOfFingerprints + "\n");
 
                     if(numberOfFingerprints>2){
-                        informationArea.setText("Finished capturing fingerprint!\n");
+                        informationArea.setText("Hemos obtenido todas las muestras!\n");
 
                         try{
-                            algorithmController.processFingerprints();
+                            algorithmController.processFingerprints(currentIndex);
                         }catch (Exception e){
-                            informationArea.setText("Could not process obtained fingerprints, please try capturing again :(");
+                            informationArea.setText("No fue posible procesar las huellas, por favor intentar de nuevo :(");
                         }
 
+                        currentIndex++;
                         numberOfFingerprints = 0;
-                        enrolling = false;
+                        if(currentIndex >=  toEnroll.size()){
+                            enrolling = false;
+                        }else {
+                            informationArea.append("Siguiente dedo a enrollar!\n");
+                            informationArea.append(fingerMessages.get(currentIndex));
+                        }
                     }
                 }
             }
