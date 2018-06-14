@@ -155,19 +155,32 @@ public class FingerprintInterface extends JDialog {
         return selected;
     }
 
+    private void deselectAllFingers(){
+        for(int i = 0; i < fingers.size(); i++){
+            JCheckBox box = fingers.get(i);
+            box.setSelected(false);
+        }
+    }
+
     private void cleanAll(){
         fingerprintController.clear();
         imageButton.setIcon(null);
         informationArea.setText("");
         rutField.setText("");
-    }
 
-    private void cleanAfterFailure(){
+        deselectAllFingers();
 
+        a7CheckBox.setSelected(true);
+        a8CheckBox.setSelected(true);
     }
 
     private void captureFingerprints() {
         informationArea.setText("");
+
+        if(rutField.getText().equals("")){
+            informationArea.setText("No puedo enrolar sin rut :P\n");
+            return;
+        }
 
         if(rutController.checkIfRut()){
             String rut = rutController.getRut();
@@ -175,7 +188,8 @@ public class FingerprintInterface extends JDialog {
                 ArrayList<Integer> selectedFingers = getSelectedFingerIndexes();
 
                 if(selectedFingers.size()<2){
-                    informationArea.setText("No puedo enrolar con menos de dos dedos\n");
+                    informationArea.setText("No puedo enrolar con menos de dos dedos!\nFavor seleccionar al menos dos dedos a capturar\n");
+                    return;
                 }
 
                 informationArea.setText("¡Estoy listo para comenzar a enrolar!\n");
@@ -188,7 +202,7 @@ public class FingerprintInterface extends JDialog {
             }
         }
         else{
-            informationArea.setText("No puedo enrolar sin RUT :P\n");
+            informationArea.setText("Rut inválido\n");
         }
     }
 
