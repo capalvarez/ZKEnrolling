@@ -8,13 +8,11 @@ import java.util.Properties;
 public class ConfigManager {
     Properties config;
 
-    public ConfigManager(String configFilePath){
+    public ConfigManager(InputStream configFile){
         this.config = new Properties();
-        InputStream input = null;
 
         try {
-            input = new FileInputStream(configFilePath);
-            config.load(input);
+            config.load(configFile);
         } catch (IOException e){
             System.out.println("No config file found!");
         }

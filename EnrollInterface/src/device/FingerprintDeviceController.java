@@ -56,8 +56,10 @@ public class FingerprintDeviceController {
             return;
         }
 
-        int returnCode = FingerprintSensorErrorCode.ZKFP_ERR_OK;
-        if(FingerprintSensorErrorCode.ZKFP_ERR_OK != FingerprintSensorEx.Init()) {
+        int returnCode = FingerprintSensorEx.Init();
+
+        System.out.println("Codigo: " + returnCode);
+        if(FingerprintSensorErrorCode.ZKFP_ERR_OK != returnCode) {
             throw new OpenDeviceFailedException();
         }
 
@@ -68,6 +70,8 @@ public class FingerprintDeviceController {
         }
 
         deviceId = FingerprintSensorEx.OpenDevice(0);
+
+        System.out.println("Device id: " + deviceId);
 
         if(deviceId == 0){
             this.freeSensor();
@@ -142,6 +146,10 @@ public class FingerprintDeviceController {
         }
 
         return true;
+    }
+
+    public void cancelEnroll(){
+
     }
 
     private class WorkThread extends Thread{

@@ -35,4 +35,15 @@ public class MySQLController {
 
         statement.execute(sqlTemplate);
     }
+
+    public void disconnect() {
+        if (connection != null) {
+            try {
+                connection.close();
+                connection = null;
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
