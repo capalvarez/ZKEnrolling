@@ -21,20 +21,37 @@ public class MySQLController {
         }
     }
 
-    public void insertTemplate(String rut, String template, int length, int finger) throws SQLException{
-        String sqlUser = "INSERT INTO User (rut) SELECT * FROM (SELECT '" + rut + "') as tmp " +
+    public void insertUserIfNotExists(String rut) throws SQLException{
+        String sqlUser = "INSERT INTO User (rut, ) SELECT * FROM (SELECT '" + rut + "') as tmp " +
                 "WHERE NOT EXISTS(" +
                 "SELECT rut FROM User WHERE rut='" + rut + "'" +
                 ") LIMIT 1";
 
         Statement statement = connection.createStatement();
         statement.execute(sqlUser);
+    }
 
-        String sqlTemplate = "INSERT INTO Template (template, length, finger, user) VALUES ('" + template + "','" + length + "','" + finger + "'," +
+    public void insertTemplate(String rut, String template, int length, int finger) throws SQLException{
+        this.insertUserIfNotExists(rut);
+        Statement statement = connection.createStatement();
+
+        String sqlTemplate = "INSERT INTO Template (template, length, finger, user) VALUES ('" + template + "','" + length + "','" + (finger+1) + "'," +
         "(SELECT idUser from User WHERE rut='" + rut + "'))";
 
         statement.execute(sqlTemplate);
     }
+
+    public void insertPassword(String rut, String password) throws SQLException {
+        this.insertUserIfNotExists(rut);
+
+        Statement statement = connection.createStatement();
+        String sqlSetPassword = "UPDATE User SET password=1 WHERE rut='"+ rut +"'";
+        statement.execute(sqlSetPassword);
+
+        String sqlPassword = "INSERT INTO Password (password, user) VALUES ('" + password +"', (SELECT idUser from User WHERE rut='" + rut + "'))";
+        statement.execute(sqlPassword);
+    }
+
 
     public void disconnect() {
         if (connection != null) {

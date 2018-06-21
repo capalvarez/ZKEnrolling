@@ -33,21 +33,54 @@ public class RutController {
         return FingerprintImageSaver.leftPad(rut, 10);
     }
 
+    private String clearFormat(String value){
+        value =  value.toUpperCase();
+        value = value.replace(".", "");
+        value = value.replace("-", "");
+
+        return value;
+    }
+
     private boolean isRut(String value){
         try{
-            value =  value.toUpperCase();
-            value = value.replace(".", "");
-            value = value.replace("-", "");
-            int rutAux = Integer.parseInt(value.substring(0, value.length() - 1));
+            String cleared = this.clearFormat(value);
 
-            char lastDigit = value.charAt(value.length()-1);
+            if(value.length()<2){
+                return false;
+            }
 
-            return lastDigit=='K' || isNumeric(lastDigit);
+            String rutWithoutDV = cleared.substring(0, cleared.length() - 1);
+
+            Integer.parseInt(rutWithoutDV);
+            char lastDigit = cleared.charAt(cleared.length()-1);
+
+            return (lastDigit=='K' || isNumeric(lastDigit)) && computeDV(rutWithoutDV) == lastDigit;
 
         } catch(java.lang.NumberFormatException e){
             return false;
         }
     }
+
+    private char computeDV(String rut){
+        int sum = 0;
+        int mult = 2;
+
+        for (int i = rut.length() - 1; i >= 0 ; i--) {
+            sum += Character.getNumericValue(rut.charAt(i)) * mult;
+            mult = (mult + 1)% 8;
+
+            if(mult < 2){
+                mult = 2;
+            }
+        }
+
+        switch (sum % 11){
+            case 0: return Character.forDigit(0, 10);
+            case 1: return 'K';
+            default: return Character.forDigit(11 - (sum % 11), 10);
+        }
+    }
+
 
     private boolean isNumeric(char a){
         try{

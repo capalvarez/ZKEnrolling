@@ -13,10 +13,12 @@ public class ConfigManager {
 
         try {
             config.load(configFile);
+            configFile.close();
         } catch (IOException e){
-            System.out.println("No config file found!");
+            System.out.println("No config file found");
         }
     }
+
 
     public DatabaseConfig getDBConfig(){
         String server = this.config.getProperty("SERVER_URL");

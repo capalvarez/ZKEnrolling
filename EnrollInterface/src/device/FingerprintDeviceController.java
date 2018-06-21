@@ -51,14 +51,13 @@ public class FingerprintDeviceController {
         }
     }
 
-    public void openDevice() throws OpenDeviceFailedException, NoDeviceConnectedException, FingerprintAlgorithmException{
+    public void openDeviceNoThread() throws OpenDeviceFailedException, NoDeviceConnectedException, FingerprintAlgorithmException{
         if(deviceId != 0){
             return;
         }
 
         int returnCode = FingerprintSensorEx.Init();
 
-        System.out.println("Codigo: " + returnCode);
         if(FingerprintSensorErrorCode.ZKFP_ERR_OK != returnCode) {
             throw new OpenDeviceFailedException();
         }
@@ -70,8 +69,6 @@ public class FingerprintDeviceController {
         }
 
         deviceId = FingerprintSensorEx.OpenDevice(0);
-
-        System.out.println("Device id: " + deviceId);
 
         if(deviceId == 0){
             this.freeSensor();
@@ -92,6 +89,11 @@ public class FingerprintDeviceController {
         fingerprintHeight = ByteArrayUtils.byteArrayToInt(paramValue);
 
         activeDevice = true;
+    }
+
+    public void openDevice() throws OpenDeviceFailedException, NoDeviceConnectedException, FingerprintAlgorithmException{
+        this.openDeviceNoThread();
+
         captureThread = new WorkThread();
         captureThread.start();
     }
@@ -131,6 +133,13 @@ public class FingerprintDeviceController {
         imagesBuffer = new ArrayList<>();
     }
 
+    public void cancelEnroll(){
+        this.enrolling = false;
+        algorithmController.cleanUp();
+        imagesBuffer = new ArrayList<>();
+    }
+
+
     public boolean saveFingerprints(MySQLController controller){
         try{
             ArrayList<FormattedFingerprints> fingerprints = algorithmController.getFingerprints();
@@ -148,10 +157,6 @@ public class FingerprintDeviceController {
         return true;
     }
 
-    public void cancelEnroll(){
-
-    }
-
     private class WorkThread extends Thread{
         @Override
         public void run() {
@@ -159,9 +164,11 @@ public class FingerprintDeviceController {
             int ret;
             int numberOfFingerprints = 0;
             int attemptsLeft = ATTEMPTS;
+            int counter = 0;
 
             while(activeDevice){
                 if(!enrolling){
+                    numberOfFingerprints = 0;
                     try{
                         Thread.sleep(2000);
                         continue;
@@ -178,7 +185,16 @@ public class FingerprintDeviceController {
                 int statusCode = FingerprintSensorEx.AcquireFingerprint(deviceId, imagesBuffer.get(currentIndex)[numberOfFingerprints], template,
                         templateLen);
 
+                if(statusCode == -8){
+                    counter++;
+
+                    if(counter >= 50000){
+                      informationArea.setText("No se detecta el dispositivo, se habra desconectado?\n\n Se le recomienda cerrar el programa y volver a abrirlo.");
+                    }
+                }
+
                 if (statusCode == 0) {
+                    counter = 0;
                     byte[] paramValue = new byte[4];
                     int[] size = new int[1];
                     size[0] = 4;
@@ -205,7 +221,7 @@ public class FingerprintDeviceController {
                     }
 
                     numberOfFingerprints++;
-                    informationArea.append("Huella capturada número " + numberOfFingerprints + "\n");
+                    informationArea.append("Huella capturada numero " + numberOfFingerprints + "\n");
 
                     if(numberOfFingerprints>2){
                         informationArea.setText("Hemos obtenido todas las muestras correctamente!\n");
@@ -219,7 +235,7 @@ public class FingerprintDeviceController {
                             attemptsLeft--;
 
                             if(attemptsLeft == 0){
-                                informationArea.setText("Después de " + ATTEMPTS + " intentos no fue posible obtener esta huella\n Se recomienda intentar con otro dedo\n Abortando operación.\n");
+                                informationArea.setText("Despues de " + ATTEMPTS + " intentos no fue posible obtener esta huella\n Se recomienda intentar con otro dedo\n Abortando operacion.\n");
                                 enrolling = false;
                                 continue;
                             }

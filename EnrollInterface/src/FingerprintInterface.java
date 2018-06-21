@@ -6,15 +6,18 @@ import device.exceptions.FingerprintAlgorithmException;
 import device.exceptions.NoDeviceConnectedException;
 import device.exceptions.OpenDeviceFailedException;
 import utils.ConfigManager;
+import utils.DatabaseConfig;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.SocketException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class FingerprintInterface extends JDialog {
@@ -25,6 +28,7 @@ public class FingerprintInterface extends JDialog {
     private JButton enrolarButton;
     private JButton capturarHuellaButton;
     private JButton limpiarHuellasButton;
+    private JButton cancelarCapturaDeHuellasButton;
     private JLabel HandImage;
     private JCheckBox a1CheckBox;
     private JCheckBox a10CheckBox;
@@ -37,7 +41,7 @@ public class FingerprintInterface extends JDialog {
     private JCheckBox a6CheckBox;
     private JCheckBox a7CheckBox;
     private JButton enrolarConClaveButton;
-    private JButton cancelarCapturaDeHuellasButton;
+
 
     private ArrayList<JCheckBox> fingers = new ArrayList<JCheckBox>();
     private ArrayList<String> fingerMessages = new ArrayList<>();
@@ -47,8 +51,9 @@ public class FingerprintInterface extends JDialog {
     MySQLController dbController;
 
     public FingerprintInterface() throws ClassNotFoundException {
-        ConfigManager configManager = new ConfigManager(getClass().getResourceAsStream("config.properties"));
+        JDialog thisFrame = this;
 
+        ConfigManager configManager = new ConfigManager(getClass().getResourceAsStream("config.properties"));
         this.setBackground(Color.WHITE);
         dbController = new MySQLController(configManager.getDBConfig());
 
@@ -103,6 +108,30 @@ public class FingerprintInterface extends JDialog {
             informationArea.append("No puedo tomar huellas :(\n");
         }
 
+        enrolarConClaveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JPasswordField pwd = new JPasswordField(10);
+                int action = JOptionPane.showConfirmDialog(thisFrame, pwd, "Ingrese su clave para el dispositivo", JOptionPane.OK_CANCEL_OPTION);
+                if (action == 0) {
+                    if (checkRut()) {
+                        String rut = rutController.getRut();
+                        String password = new String(pwd.getPassword());
+
+                        try {
+                            dbController.insertPassword(rut, password);
+                            informationArea.setText("Contraseña guardada correctamente!");
+                            cleanAll();
+                        } catch (SQLException exception) {
+                            informationArea.setText("Su clave no ha podido ser guardada\n Por favor intente nuevamente.");
+                        }
+                    }
+                } else {
+                    informationArea.setText("Su clave no ha sido guardada.\nPara guardarla aprete \"Aceptar\" en la ventana \nde ingreso de contraseña.");
+                }
+            }
+        });
+
         limpiarHuellasButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -114,17 +143,10 @@ public class FingerprintInterface extends JDialog {
             public void actionPerformed(ActionEvent e) {
                 if (fingerprintController.saveFingerprints(dbController)) {
                     cleanAll();
-                    informationArea.setText("¡Éxito! ¡Huellas guardadas correctamente!\n");
+                    informationArea.setText("Exito! Huellas guardadas correctamente!\n");
                 } else {
                     informationArea.setText("No pude guardar las huellas en la base de datos :(\n");
                 }
-
-            }
-        });
-
-        cancelarCapturaDeHuellasButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
 
             }
         });
@@ -133,6 +155,15 @@ public class FingerprintInterface extends JDialog {
             @Override
             public void actionPerformed(ActionEvent e) {
                 captureFingerprints();
+            }
+        });
+
+        cancelarCapturaDeHuellasButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                fingerprintController.cancelEnroll();
+                informationArea.setText(null);
+                imageButton.setIcon(null);
             }
         });
 
@@ -184,15 +215,24 @@ public class FingerprintInterface extends JDialog {
         a8CheckBox.setSelected(true);
     }
 
+    private boolean checkRut() {
+        if (rutField.getText().equals("")) {
+            informationArea.setText("No puedo enrolar sin rut :P\n");
+            return false;
+        }
+
+        if (!rutController.checkIfRut()) {
+            informationArea.setText("Rut invalido\n");
+            return false;
+        }
+
+        return true;
+    }
+
     private void captureFingerprints() {
         informationArea.setText("");
 
-        if (rutField.getText().equals("")) {
-            informationArea.setText("No puedo enrolar sin rut :P\n");
-            return;
-        }
-
-        if (rutController.checkIfRut()) {
+        if (this.checkRut()) {
             String rut = rutController.getRut();
             try {
                 ArrayList<Integer> selectedFingers = getSelectedFingerIndexes();
@@ -202,16 +242,14 @@ public class FingerprintInterface extends JDialog {
                     return;
                 }
 
-                informationArea.setText("¡Estoy listo para comenzar a enrolar!\n");
+                informationArea.setText("Estoy listo para comenzar a enrolar!\n");
                 fingerprintController.setNumberOfFingers(selectedFingers.size());
 
                 informationArea.append(fingerMessages.get(selectedFingers.get(0)));
                 fingerprintController.enroll(rut, selectedFingers);
             } catch (ClosedDeviceException e) {
-                informationArea.append("No puedo enrolar si no está conectado el huellero\n");
+                informationArea.append("No puedo enrolar si no esta conectado el huellero\n");
             }
-        } else {
-            informationArea.setText("Rut inválido\n");
         }
     }
 
@@ -225,11 +263,11 @@ public class FingerprintInterface extends JDialog {
             ServerSocket ss = new ServerSocket();
             ss.bind(new InetSocketAddress(100));
         } catch (SocketException e) {
-            JOptionPane.showMessageDialog(null, "No puede tener el programa corriendo más de una vez!", "Error",
+            JOptionPane.showMessageDialog(null, "No puede tener el programa corriendo mas de una vez!", "Error",
                     JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "No puede tener el programa corriendo más de una vez!", "Error",
+            JOptionPane.showMessageDialog(null, "No puede tener el programa corriendo mas de una vez!", "Error",
                     JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
@@ -280,6 +318,9 @@ public class FingerprintInterface extends JDialog {
         limpiarHuellasButton = new JButton();
         limpiarHuellasButton.setText("Limpiar");
         panel1.add(limpiarHuellasButton, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_EAST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        cancelarCapturaDeHuellasButton = new JButton();
+        cancelarCapturaDeHuellasButton.setText("Cancelar captura de huellas");
+        panel1.add(cancelarCapturaDeHuellasButton, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel2 = new JPanel();
         panel2.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(4, 4, new Insets(10, 10, 10, 10), -1, -1));
         gbc = new GridBagConstraints();
@@ -296,7 +337,7 @@ public class FingerprintInterface extends JDialog {
         panel2.add(label1, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         informationArea = new JTextArea();
         informationArea.setText("");
-        panel2.add(informationArea, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(300, 100), null, 0, false));
+        panel2.add(informationArea, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_VERTICAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(300, 100), null, 0, false));
         imageButton = new JButton();
         imageButton.setHorizontalAlignment(2);
         imageButton.setHorizontalTextPosition(2);
