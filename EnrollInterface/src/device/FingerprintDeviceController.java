@@ -15,7 +15,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class FingerprintDeviceController {
-    private static int ATTEMPTS = 3;
+    private static int ATTEMPTS = 1;
 
     private long deviceId = 0;
     private boolean activeDevice;
@@ -157,7 +157,20 @@ public class FingerprintDeviceController {
         return true;
     }
 
+
     private class WorkThread extends Thread{
+        ArrayList<Integer> testedFingers = new ArrayList<Integer>();
+
+        private int getNextFinger(int currentFinger){
+            int nextFinger = (currentFinger + 1)%10;
+
+            while(testedFingers.contains(nextFinger)){
+                nextFinger = (nextFinger + 1)%10;
+            }
+
+            return nextFinger;
+        }
+
         @Override
         public void run() {
             super.run();
@@ -224,19 +237,26 @@ public class FingerprintDeviceController {
                     informationArea.append("Huella capturada numero " + numberOfFingerprints + "\n");
 
                     if(numberOfFingerprints>2){
-                        informationArea.setText("Hemos obtenido todas las muestras correctamente!\n");
-
-
                         boolean failed = false;
                         try{
                             algorithmController.processFingerprints(currentIndex);
+                            informationArea.setText("Hemos obtenido todas las muestras correctamente!\n");
                             currentIndex++;
                         }catch (Exception e){
                             attemptsLeft--;
 
-                            if(attemptsLeft == 0){
-                                informationArea.setText("Despues de " + ATTEMPTS + " intentos no fue posible obtener esta huella\n Se recomienda intentar con otro dedo\n Abortando operacion.\n");
-                                enrolling = false;
+                            if(attemptsLeft <= 0){
+                                informationArea.setText("Despues de " + ATTEMPTS + " intentos no fue posible obtener esta huella.\nSe intentará con el siguiente dedo.\n");
+                                testedFingers.add(toEnroll.get(currentIndex));
+
+                                if(testedFingers.size()>9){
+                                    informationArea.setText("Se ha intentado con todos los dedos y no ha\nsido posible adquirir dos huellas.\nFavor enrolar con clave.");
+                                }
+
+                                toEnroll.set(currentIndex, getNextFinger(toEnroll.get(currentIndex)));
+                                informationArea.append(fingerMessages.get(toEnroll.get(currentIndex)));
+                                numberOfFingerprints = 0;
+
                                 continue;
                             }
 
@@ -252,6 +272,7 @@ public class FingerprintDeviceController {
                             if(!failed){
                                 attemptsLeft = ATTEMPTS;
                                 informationArea.append("Siguiente dedo a enrollar!\n");
+                                testedFingers.add(toEnroll.get(currentIndex));
                             }
 
                             informationArea.append(fingerMessages.get(toEnroll.get(currentIndex)));
