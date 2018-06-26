@@ -15,7 +15,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class FingerprintDeviceController {
-    private static int ATTEMPTS = 1;
+    private static int ATTEMPTS = 3;
 
     private long deviceId = 0;
     private boolean activeDevice;

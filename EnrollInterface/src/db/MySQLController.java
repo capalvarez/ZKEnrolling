@@ -21,8 +21,9 @@ public class MySQLController {
         }
     }
 
+
     public void insertUserIfNotExists(String rut) throws SQLException{
-        String sqlUser = "INSERT INTO User (rut, ) SELECT * FROM (SELECT '" + rut + "') as tmp " +
+        String sqlUser = "INSERT INTO User (rut) SELECT * FROM (SELECT '" + rut + "') as tmp " +
                 "WHERE NOT EXISTS(" +
                 "SELECT rut FROM User WHERE rut='" + rut + "'" +
                 ") LIMIT 1";
@@ -35,8 +36,23 @@ public class MySQLController {
         this.insertUserIfNotExists(rut);
         Statement statement = connection.createStatement();
 
-        String sqlTemplate = "INSERT INTO Template (template, length, finger, user) VALUES ('" + template + "','" + length + "','" + (finger+1) + "'," +
-        "(SELECT idUser from User WHERE rut='" + rut + "'))";
+        String previousTmpSql = "SELECT idTemplate FROM Template WHERE user = (SELECT idUser from User WHERE rut='" + rut + "') AND finger = '" + (finger+1)  +"'";
+        statement.execute(previousTmpSql);
+
+        ResultSet resultSet = statement.getResultSet();
+        int templateId = -1;
+
+        while(resultSet.next()){
+            templateId = resultSet.getInt("idTemplate");
+        }
+
+        String sqlTemplate;
+        if(templateId < 0){
+            sqlTemplate = "INSERT INTO Template (template, length, finger, user) VALUES ('" + template + "','" + length + "','" + (finger+1) + "'," +
+                    "(SELECT idUser from User WHERE rut='" + rut + "'))";
+        } else {
+            sqlTemplate = "UPDATE Template SET template ='" + template + "', length='" + length + "' WHERE idTemplate = '" + templateId +"'";
+        }
 
         statement.execute(sqlTemplate);
     }
