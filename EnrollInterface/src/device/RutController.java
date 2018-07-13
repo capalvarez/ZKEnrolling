@@ -90,5 +90,19 @@ public class RutController {
             return false;
         }
     }
+
+    public boolean checkPassword(String pass){
+        if(pass.length() == 0 || pass.length() > 7){
+            return false;
+        }
+
+        try {
+            Integer.parseInt(pass);
+            return true;
+        }catch (java.lang.NumberFormatException e){
+            return false;
+        }
+
+    }
     
 }

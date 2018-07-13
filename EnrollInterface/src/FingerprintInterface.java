@@ -112,19 +112,29 @@ public class FingerprintInterface extends JDialog {
             @Override
             public void actionPerformed(ActionEvent e) {
                 JPasswordField pwd = new JPasswordField(10);
-                int action = JOptionPane.showConfirmDialog(thisFrame, pwd, "Ingrese su clave para el dispositivo", JOptionPane.OK_CANCEL_OPTION);
+                JPanel panel = new JPanel(new GridLayout(2, 1));
+                panel.add(new JLabel("Ingrese su clave para el dispositivo (numérica, a lo más 7 caracteres)"));
+                panel.add(pwd);
+
+                int action = JOptionPane.showConfirmDialog(thisFrame, panel, "Enrrolar con clave", JOptionPane.OK_CANCEL_OPTION);
                 if (action == 0) {
                     if (checkRut()) {
                         String rut = rutController.getRut();
                         String password = new String(pwd.getPassword());
 
-                        try {
-                            dbController.insertPassword(rut, password);
-                            informationArea.setText("Contraseña guardada correctamente!");
-                            cleanAll();
-                        } catch (SQLException exception) {
-                            informationArea.setText("Su clave no ha podido ser guardada\n Por favor intente nuevamente.");
+                        boolean checkPassword = rutController.checkPassword(password);
+
+                        if (checkPassword) {
+                            try {
+                                dbController.insertPassword(rut, password);
+                                informationArea.setText("Contraseña guardada correctamente!");
+                            } catch (SQLException exception) {
+                                informationArea.setText("Su clave no ha podido ser guardada\n Por favor intente nuevamente.");
+                            }
+                        } else {
+                            informationArea.setText("La clave debe ser de a lo más 7 caracteres numericos");
                         }
+
                     }
                 } else {
                     informationArea.setText("Su clave no ha sido guardada.\nPara guardarla aprete \"Aceptar\" en la ventana \nde ingreso de contraseña.");

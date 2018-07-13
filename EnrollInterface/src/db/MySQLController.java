@@ -61,11 +61,8 @@ public class MySQLController {
         this.insertUserIfNotExists(rut);
 
         Statement statement = connection.createStatement();
-        String sqlSetPassword = "UPDATE User SET password=1 WHERE rut='"+ rut +"'";
+        String sqlSetPassword = "UPDATE User SET password='" + password + "' WHERE rut='"+ rut +"'";
         statement.execute(sqlSetPassword);
-
-        String sqlPassword = "INSERT INTO Password (password, user) VALUES ('" + password +"', (SELECT idUser from User WHERE rut='" + rut + "'))";
-        statement.execute(sqlPassword);
     }
 
 

@@ -23,7 +23,7 @@ public class SelectionInterface extends JDialog {
         ConfigManager configManager = new ConfigManager(getClass().getResourceAsStream("config.properties"));
         dbController = new MySQLController(configManager.getDBConfig());
 
-        this.enrollInterface = new FingerprintInterface(this.dbController);
+        this.enrollInterface = new FingerprintInterface();
 
         setContentPane(contentPane);
         setModal(true);
@@ -31,9 +31,6 @@ public class SelectionInterface extends JDialog {
         procederAEnrolarButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if()
-
-
                 enrollInterface.pack();
                 enrollInterface.setVisible(true);
             }
