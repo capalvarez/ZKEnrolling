@@ -8,21 +8,40 @@ import java.sql.*;
 
 public class MySQLController {
     private Connection connection = null;
+    private DatabaseConfig config;
 
-    public MySQLController(DatabaseConfig config) throws ClassNotFoundException{
+    public MySQLController(DatabaseConfig config) throws ClassNotFoundException, SQLException{
         Class.forName("com.mysql.jdbc.Driver");
+        this.config = config;
 
-        String completeURL = "jdbc:mysql://" +config.serverUrl + ":" + config.port + "/" + config.database;
+        connect();
+    }
 
+    private void connect() throws SQLException{
+        String completeURL = "jdbc:mysql://" + config.serverUrl + ":" + config.port + "/" + config.database;
+
+        connection = DriverManager.getConnection(completeURL, config.user, config.password);
+    }
+
+    private boolean testConnection(){
         try{
-            connection = DriverManager.getConnection(completeURL, config.user, config.password);
-        } catch (SQLException e){
-            e.printStackTrace();
+            String sql = "SELECT count(*) FROM User";
+            Statement s = connection.createStatement();
+
+            s.execute(sql);
+
+            return true;
+        } catch (SQLException exception){
+            try{
+                connect();
+                return true;
+            } catch (SQLException e){
+                return false;
+            }
         }
     }
 
-
-    public void insertUserIfNotExists(String rut) throws SQLException{
+    private void insertUserIfNotExists(String rut) throws SQLException{
         String sqlUser = "INSERT INTO User (rut) SELECT * FROM (SELECT '" + rut + "') as tmp " +
                 "WHERE NOT EXISTS(" +
                 "SELECT rut FROM User WHERE rut='" + rut + "'" +
@@ -33,6 +52,11 @@ public class MySQLController {
     }
 
     public void insertTemplate(String rut, String template, int length, int finger) throws SQLException{
+        boolean connected = this.testConnection();
+        if(!connected){
+            throw new SQLException();
+        }
+
         this.insertUserIfNotExists(rut);
         Statement statement = connection.createStatement();
 
@@ -58,6 +82,11 @@ public class MySQLController {
     }
 
     public void insertPassword(String rut, String password) throws SQLException {
+        boolean connected = this.testConnection();
+        if(!connected){
+            throw new SQLException();
+        }
+
         this.insertUserIfNotExists(rut);
 
         Statement statement = connection.createStatement();

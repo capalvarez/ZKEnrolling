@@ -7,6 +7,7 @@ import java.awt.event.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.SocketException;
+import java.sql.SQLException;
 
 public class SelectionInterface extends JDialog {
     private JButton agregarNuevoButton;
@@ -20,8 +21,13 @@ public class SelectionInterface extends JDialog {
     private FingerprintInterface enrollInterface;
 
     public SelectionInterface() throws ClassNotFoundException {
-        ConfigManager configManager = new ConfigManager(getClass().getResourceAsStream("config.properties"));
-        dbController = new MySQLController(configManager.getDBConfig());
+        ConfigManager configManager = new ConfigManager(getClass().getResourceAsStream("config_prod.properties"));
+        try {
+            dbController = new MySQLController(configManager.getDBConfig());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
 
         this.enrollInterface = new FingerprintInterface();
 

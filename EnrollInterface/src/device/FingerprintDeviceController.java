@@ -157,6 +157,9 @@ public class FingerprintDeviceController {
         return true;
     }
 
+    public int numberEnrolledFingerprints(){
+        return algorithmController.getFingerprints().size();
+    }
 
     private class WorkThread extends Thread{
         ArrayList<Integer> testedFingers = new ArrayList<Integer>();

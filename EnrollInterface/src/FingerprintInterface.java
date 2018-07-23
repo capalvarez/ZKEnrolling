@@ -6,13 +6,11 @@ import device.exceptions.FingerprintAlgorithmException;
 import device.exceptions.NoDeviceConnectedException;
 import device.exceptions.OpenDeviceFailedException;
 import utils.ConfigManager;
-import utils.DatabaseConfig;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -53,9 +51,8 @@ public class FingerprintInterface extends JDialog {
     public FingerprintInterface() throws ClassNotFoundException {
         JDialog thisFrame = this;
 
-        ConfigManager configManager = new ConfigManager(getClass().getResourceAsStream("config.properties"));
+        ConfigManager configManager = new ConfigManager(getClass().getResourceAsStream("config_test.properties"));
         this.setBackground(Color.WHITE);
-        dbController = new MySQLController(configManager.getDBConfig());
 
         setContentPane(contentPane);
         setModal(true);
@@ -73,6 +70,12 @@ public class FingerprintInterface extends JDialog {
         fingerMessages.add("Por favor, acerce su dedo medio derecho (número 8) 3 veces\n");
         fingerMessages.add("Por favor, acerce su anular derecho (número 9) 3 veces\n");
         fingerMessages.add("Por favor, acerce su meñique derecho (número 10) 3 veces\n");
+
+        try {
+            dbController = new MySQLController(configManager.getDBConfig());
+        } catch (SQLException e) {
+            informationArea.setText("No es posible conectarse a la base de datos,\nlos datos no seran guardados");
+        }
 
         rutController = new RutController(this.rutField);
         fingerprintController = new FingerprintDeviceController(imageButton, informationArea, configManager.getLocalStoragePath(), fingerMessages);
@@ -151,6 +154,16 @@ public class FingerprintInterface extends JDialog {
 
         enrolarButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+                if (fingerprintController.numberEnrolledFingerprints() < 1) {
+                    informationArea.setText("No ha enrrolado al usuario, nada que guardar :(\n");
+                    return;
+                }
+
+                if (fingerprintController.numberEnrolledFingerprints() < getSelectedFingerIndexes().size()) {
+                    informationArea.append("No ha enrrolado todos los dedos seleccionados,\ntermine de enrrolar antes de guardar\n");
+                    return;
+                }
+
                 if (fingerprintController.saveFingerprints(dbController)) {
                     cleanAll();
                     informationArea.setText("Exito! Huellas guardadas correctamente!\n");
@@ -265,7 +278,9 @@ public class FingerprintInterface extends JDialog {
 
     private void onCancel() {
         fingerprintController.closeDevice();
-        dbController.disconnect();
+        if (dbController != null) {
+            dbController.disconnect();
+        }
     }
 
     public static void main(String[] args) {
